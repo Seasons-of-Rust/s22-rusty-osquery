@@ -1,6 +1,7 @@
-# Summer of Rust Project Template
+# Rusty OSQuery
 
-This is a template to get you started with your Rust project!
+Feature-Lacking osquery clone.
+
 
 ## License
 
