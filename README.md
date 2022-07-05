@@ -2,6 +2,7 @@
 
 Feature-Lacking osquery clone.
 
+![banner example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/banner_screenshot.png)
 
 ## License
 
