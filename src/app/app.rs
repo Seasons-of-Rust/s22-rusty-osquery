@@ -47,7 +47,12 @@ fn handle_input(ui:  &mut UserInput) {
                 _ => println!("ERROR!"),
             }
         },
-        "fs" => println!("to do!"),
+        "fs" => {
+            match engine::query_dir(&mut ui.params, &ui.filter_string) {
+                Ok(res) => interface::print_data_table(res),
+                _ => println!("ERROR!")
+            }
+        },
         "os_version" => {
             match engine::do_get_os_version_info(&mut ui.params) {
                 Ok(res) => interface::print_hash_table(res),

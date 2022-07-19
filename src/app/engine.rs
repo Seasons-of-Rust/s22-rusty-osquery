@@ -4,6 +4,9 @@ use regex::Regex;
 use std::fmt;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use chrono::DateTime;
+use chrono::Utc;
+
 //use std::io;
 //use std::fs::File;
 //use std::io::BufReader;
@@ -32,6 +35,11 @@ use nom::{
 trait HasLookup {
     fn lookup(&self, attribute: &String) -> u32;
     fn lookup_str(&self, attribute: &String) -> String;
+}
+
+pub trait HasSchema {
+    fn get_schema(&self) -> &BTreeMap<String, String>;
+    fn get_table_body(self, cols: &Vec<String>) -> String;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -77,9 +85,11 @@ impl FilterItem {
             target: target,
         }
     }
+}
 
-    pub fn show_filter(&self){
-        println!("{} {} {}", self.subject, self.op, self.target); 
+impl fmt::Display for FilterItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", format!("{} {} {}", self.subject, self.op, self.target))
     }
 }
 
@@ -97,6 +107,31 @@ impl FilterItems {
             _ => false,
         })
     }
+
+    pub fn get_path(&mut self) -> Option<String> {
+        let index = self.filters.iter().position(|x| x.subject == "path");
+        match index {
+            Some(i) => {
+                let path = self.filters[i].target.clone();
+                self.filters.remove(i);
+                Some(path)
+            },
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for FilterItems {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut blah = String::new();
+        for x in &self.filters {
+            let t = format!("{}", x);
+            blah.push_str(&t);
+        }
+
+        write!(f, "{}", blah)
+    }
+
 }
 
 pub fn string_literal(input: &str) -> IResult<&str, &str> {
@@ -134,6 +169,98 @@ pub fn label_match(input: &str) -> IResult<&str, FilterItem> {
 pub fn vector_selector(input: &str) -> IResult<&str, FilterItems> {
     let (rest, filters) = separated_list0(char(','), label_match)(input)?;
     Ok((rest, FilterItems { filters }))
+}
+
+pub struct FileItem {
+    name: String,
+    is_dir: bool,
+    file_owner: u32,
+    file_creation_time: String,
+}
+
+impl FileItem {
+    fn to_row(self) -> String {
+        format!("|{}|{}|{}|{}|\n", self.file_creation_time, self.is_dir, self.name, self.file_owner)
+    }
+}
+
+impl HasLookup for &FileItem {
+    fn lookup(&self, attribute: &String) -> u32 {
+        match attribute.as_str() {
+            "uid" => self.file_owner,
+            "dir" => {
+                if self.is_dir {
+                    1
+                } else {
+                    0
+                }
+            }
+            _ => 0
+        }
+    }
+
+    fn lookup_str(&self, attribute: &String) -> String {
+        match attribute.as_str() {
+            "name" => self.name.clone(),
+            "dir" => {
+                if self.is_dir {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            "uid" => format!("{}", self.file_owner).to_string(),
+            "created" => self.file_creation_time.clone(),
+            _ => "ERROR".to_string()
+        }
+    }
+}
+
+pub struct FileTable {
+    pub table: Vec<FileItem>,
+    pub schema: BTreeMap<String, String>,
+}
+
+impl FileTable {
+    fn new() -> FileTable {
+        FileTable {
+            table: Vec::new(),
+            schema: BTreeMap::from([
+                ("name".to_string(), "The file name".to_string()),
+                ("dir".to_string(), "The file type".to_string()),
+                ("uid".to_string(), "The file owner".to_string()),
+                ("created".to_string(), "The file creation time".to_string())
+            ])
+        }
+    }
+
+    pub fn add_row(&mut self, item: FileItem) {
+        self.table.push(item);
+    }
+
+    pub fn get_body(self, cols: &Vec<String>) -> String {
+        let mut table_str = String::new();
+        for x in self.table {
+            if cols.len() == 0 || cols[0] == "*" {
+                let s = x.to_row();
+                table_str.push_str(&s);
+            } else {
+               let s = format!("|{}|\n", cols.into_iter().map(|z| (&x).lookup_str(&z.to_string())).filter(|y| y!="").collect::<Vec<String>>().join("|"));
+               table_str.push_str(&s);
+            }
+        }
+        table_str
+    }    
+}
+
+impl HasSchema for FileTable {
+    fn get_schema(&self) -> &BTreeMap<String, String> {
+        &self.schema
+    }
+
+    fn get_table_body(self, cols: &Vec<String>) -> String {
+        self.get_body(&cols)
+    }
 }
 
 
@@ -189,27 +316,8 @@ impl ProcTable {
         self.table.push(item);
     }
 
-    pub fn export(self, cols: &mut Vec<String>) -> String {
+    pub fn get_body(self, cols: &Vec<String>) -> String {
         let mut table_str = String::new();
-        if cols.len() == 0 || cols[0] == "*" {
-            let s = &self.schema;
-            let col_vec = join(s.keys().cloned(), "**|**");
-            let n = s.len();
-            let row_sep = "|:-".repeat(n);
-            let header_row = format!("{}|\n|**{}**|\n{}|\n", row_sep, col_vec, row_sep);
-            table_str.push_str(&header_row);
-        } else {
-        
-        let filtered_cols = join(cols.into_iter().filter(|x| self.schema.contains_key(&x.clone() as &str)), "**|**");
-        
-
-        let n = cols.len();
-        let row_sep = "|:-".repeat(n);
-        let header_row = format!("{}|\n|**{}**|\n{}|\n", row_sep, filtered_cols, row_sep);
-        //println!("{}", header_row);
-        table_str.push_str(&header_row);
-        }
-
         for x in self.table {
             if cols.len() == 0 || cols[0] == "*" {
                 let s = x.to_row();
@@ -220,8 +328,42 @@ impl ProcTable {
             }
         }
         table_str
+    }    
+}
+
+impl HasSchema for ProcTable {
+    fn get_schema(&self) -> &BTreeMap<String, String> {
+        &self.schema
     }
-    
+
+    fn get_table_body(self, cols: &Vec<String>) -> String {
+        self.get_body(&cols)
+    }
+}
+
+
+pub fn export<T: HasSchema>(table: T, cols: &mut Vec<String>) -> String {
+    let mut table_str = String::new();
+    if cols.len() == 0 || cols[0] == "*" {
+      let s = table.get_schema();
+      let col_vec = join(s.keys().cloned(), "**|**");
+      let n = s.len();
+      let row_sep = "|:-".repeat(n);
+      let header_row = format!("{}|\n|**{}**|\n{}|\n", row_sep, col_vec, row_sep);
+      table_str.push_str(&header_row);
+    } else {
+        let s = table.get_schema();
+        let filtered_cols = join(cols.into_iter().filter(|x| s.contains_key(&x.clone() as &str)), "**|**");
+        let n = cols.len();
+        let row_sep = "|:-".repeat(n);
+        let header_row = format!("{}|\n|**{}**|\n{}|\n", row_sep, filtered_cols, row_sep);
+        //println!("{}", header_row);
+        table_str.push_str(&header_row);
+    }
+    let body = table.get_table_body(&cols);
+    table_str.push_str(&body);
+    table_str
+
 }
 
 fn get_pids(x: &String) -> Result<u32, String> {
@@ -263,6 +405,61 @@ fn read_file_to_stdout(file_path: &Path) -> String {
     }
 }
 
+pub fn query_dir(cols: &mut Vec<String>, filter_str: &String) -> Result<String, String> {
+    let res = vector_selector(&filter_str[..]);
+    let mut filters = match res {
+        Ok((r, x)) => {
+            println!("{}", r);
+            println!("{}", x);
+            x
+        },
+        _ => FilterItems{ filters: Vec::new() }
+    };
+
+    match filters.get_path() {
+        Some(file_path) => {
+            let path = Path::new(&file_path);
+    if !path.exists(){
+        return Err("Path does not exist!".to_string());
+    }
+
+    let paths = fs::read_dir(&path).unwrap();
+    let mut dirs: FileTable = FileTable::new();
+    for path in paths {
+        let entry = path.unwrap();
+        let p = entry.path();
+
+        let path_str = p.display().to_string();
+        let md = p.metadata().expect("check metadata failed");
+
+        //let file_type = format!("{:?}", md.file_type()).to_string();
+        let ct = match md.created() {
+            Ok(t) => {
+                let datetime: DateTime<Utc> = t.into();
+                format!("{}", datetime.format("%d/%m/%Y %T")).to_string()
+            },
+            _ => "??".to_string()
+        };
+
+        let fi = FileItem {
+            name: path_str,
+            is_dir: p.is_dir(),
+            file_owner: md.uid(),
+            file_creation_time: ct,
+        };
+        let f = &filters;
+        let b = f.check(&fi);
+        if b {
+            dirs.add_row(fi);
+        }
+        }
+        Ok(export(dirs, cols))
+    },
+        _ => Err("Path not specified".to_string())
+    }
+
+}
+
 pub fn query_procs(cols: &mut Vec<String>, filter_str: &String) -> Result<String, String> {
     let res = vector_selector(&filter_str[..]);
     let filters = match res {
@@ -302,7 +499,8 @@ pub fn query_procs(cols: &mut Vec<String>, filter_str: &String) -> Result<String
             _ => ( ),
         }
     }
-    Ok(proc_items.export(cols))
+    //Ok(proc_items.export(cols))
+    Ok(export(proc_items, cols))
 }
 
 pub struct OSVersion {
