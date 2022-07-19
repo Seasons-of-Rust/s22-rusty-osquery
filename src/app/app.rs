@@ -1,7 +1,7 @@
-use super::interface;
 use super::engine;
-use std::io;
+use super::interface;
 use regex::Regex;
+use std::io;
 
 pub struct UserInput {
     table_name: String,
@@ -9,12 +9,11 @@ pub struct UserInput {
     filter_string: String,
 }
 
-
 pub fn parse_option(input: String) -> Result<UserInput, String> {
     let re = Regex::new(r"select\s([a-zA-z_\*,|\s?]+)\sfrom\s([a-z_]+)(\swhere\s(.*))?;").unwrap();
     let mut capts = re.captures_iter(&input[..]);
     let m = capts.next();
-    
+
     match m {
         Some(p) => {
             //println!("{:?}", p);
@@ -23,20 +22,19 @@ pub fn parse_option(input: String) -> Result<UserInput, String> {
                 Some(_) => p[4].to_string(),
                 _ => String::new(),
             };
-            
-            let ui = UserInput{
+
+            let ui = UserInput {
                 table_name: p[2].to_string(),
                 params: par,
                 filter_string: filter_string,
             };
             Ok(ui)
-        },
-        _ => Err("Could not parse input".to_string())
+        }
+        _ => Err("Could not parse input".to_string()),
     }
-
 }
 
-fn handle_input(ui:  &mut UserInput) {
+fn handle_input(ui: &mut UserInput) {
     match ui.table_name.as_str() {
         "procs" => {
             /*let filter_items_test = engine::FilterItems{
@@ -46,24 +44,18 @@ fn handle_input(ui:  &mut UserInput) {
                 Ok(res) => interface::print_data_table(res),
                 _ => println!("ERROR!"),
             }
+        }
+        "fs" => match engine::query_dir(&mut ui.params, &ui.filter_string) {
+            Ok(res) => interface::print_data_table(res),
+            _ => println!("ERROR!"),
         },
-        "fs" => {
-            match engine::query_dir(&mut ui.params, &ui.filter_string) {
-                Ok(res) => interface::print_data_table(res),
-                _ => println!("ERROR!")
-            }
-        },
-        "os_version" => {
-            match engine::do_get_os_version_info(&mut ui.params) {
-                Ok(res) => interface::print_hash_table(res),
-                _ => println!("ERROR!"),
-            }
+        "os_version" => match engine::do_get_os_version_info(&mut ui.params) {
+            Ok(res) => interface::print_hash_table(res),
+            _ => println!("ERROR!"),
         },
         _ => println!("to do: {}", ui.table_name),
     }
 }
-
-
 
 pub fn mainloop() {
     interface::print_banner();
@@ -71,7 +63,9 @@ pub fn mainloop() {
         interface::print_prompt();
         let input = get_option();
         if input == "q" {
-            break
+            break;
+        } if input == "h" {
+            interface::print_help();
         } else {
             match parse_option(input) {
                 Ok(mut ui) => handle_input(&mut ui),
@@ -80,33 +74,11 @@ pub fn mainloop() {
         }
     }
 }
-/*
-pub fn mainloop() {
-    interface::print_banner();
-    loop {
-        interface::print_prompt();
-        let input = get_option();
-        let args: Vec<&str> = input.split("::").collect();
-        let z = *args.get(0).unwrap();
-        if z == "q" {
-            break
-        } else {
-            let x = args.get(1);
-            match (x, z) {
-                (Some(y), "fs") => call_fs_query((*y).to_string()),
-                (Some(y), "ps") => call_proc_query((*y).to_string()),
-                _ => {
-                    println!("to do!");
-                },
-            }
-        }
-    }
-
-}
-*/
 
 pub fn get_option() -> String {
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("can't process input");
+    io::stdin()
+        .read_line(&mut input)
+        .expect("can't process input");
     input.trim().to_string()
 }

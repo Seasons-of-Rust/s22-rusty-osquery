@@ -6,6 +6,8 @@ Feature-Lacking osquery clone.
 
 ![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/sc2.png)
 
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/sc3.png)
+
 ## License
 
 This repository is duel-licensed under either:

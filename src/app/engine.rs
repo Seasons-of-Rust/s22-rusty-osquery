@@ -1,36 +1,36 @@
-use std::fs;
-use std::path::Path;
-use regex::Regex;
-use std::fmt;
-use std::collections::BTreeMap;
-use std::collections::HashMap;
 use chrono::DateTime;
 use chrono::Utc;
+use regex::Regex;
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::fmt;
+use std::fs;
+use std::path::Path;
 
 //use std::io;
 //use std::fs::File;
 //use std::io::BufReader;
 //use std::io::Read;
 use itertools::join;
-use std::os::unix::fs::MetadataExt;
 use nom::{
-    combinator::value,
     branch::alt,
-    bytes::complete::tag,
-    character::complete::{char, digit1},
-    combinator::recognize,
-    sequence::separated_pair,
-    sequence::delimited,
     bytes::complete::is_not,
-    character::complete::alphanumeric1,
-    multi::many0,
-    sequence::pair,
+    bytes::complete::tag,
     character::complete::alpha1,
-    multi::separated_list0,
-    combinator::rest,
+    character::complete::alphanumeric1,
+    character::complete::{char, digit1},
     combinator::opt,
+    combinator::recognize,
+    combinator::rest,
+    combinator::value,
+    multi::many0,
+    multi::separated_list0,
+    sequence::delimited,
+    sequence::pair,
+    sequence::separated_pair,
     IResult,
 };
+use std::os::unix::fs::MetadataExt;
 
 trait HasLookup {
     fn lookup(&self, attribute: &String) -> u32;
@@ -52,23 +52,22 @@ pub enum FilterOp {
 
 impl fmt::Display for FilterOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-         match &self {
-           FilterOp::Eq => write!(f, "EQ"),
-           FilterOp::Leq => write!(f, "LEQ"),
-           FilterOp::Geq => write!(f, "GEQ"),
-           FilterOp::Like => write!(f, "LIKE"),
-         }
+        match &self {
+            FilterOp::Eq => write!(f, "EQ"),
+            FilterOp::Leq => write!(f, "LEQ"),
+            FilterOp::Geq => write!(f, "GEQ"),
+            FilterOp::Like => write!(f, "LIKE"),
+        }
     }
 }
 
 pub fn match_op(input: &str) -> IResult<&str, FilterOp> {
     alt((
-      value(FilterOp::Eq, tag("=")),
-      value(FilterOp::Leq, tag("<=")),
-      value(FilterOp::Geq, tag(">=")),
-      value(FilterOp::Like, tag("like")),
-    
-   ))(input)
+        value(FilterOp::Eq, tag("=")),
+        value(FilterOp::Leq, tag("<=")),
+        value(FilterOp::Geq, tag(">=")),
+        value(FilterOp::Like, tag("like")),
+    ))(input)
 }
 
 pub struct FilterItem {
@@ -79,7 +78,7 @@ pub struct FilterItem {
 
 impl FilterItem {
     pub fn new(subject: String, op: FilterOp, target: String) -> FilterItem {
-        FilterItem{
+        FilterItem {
             subject: subject,
             op: op,
             target: target,
@@ -89,7 +88,11 @@ impl FilterItem {
 
 impl fmt::Display for FilterItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{} {} {}", self.subject, self.op, self.target))
+        write!(
+            f,
+            "{}",
+            format!("{} {} {}", self.subject, self.op, self.target)
+        )
     }
 }
 
@@ -115,7 +118,7 @@ impl FilterItems {
                 let path = self.filters[i].target.clone();
                 self.filters.remove(i);
                 Some(path)
-            },
+            }
             _ => None,
         }
     }
@@ -131,13 +134,10 @@ impl fmt::Display for FilterItems {
 
         write!(f, "{}", blah)
     }
-
 }
 
 pub fn string_literal(input: &str) -> IResult<&str, &str> {
-    let (rest, m) = recognize(
-        delimited(char('"'), many0(is_not("\"")), char('"'))
-    )(input)?;
+    let (rest, m) = recognize(delimited(char('"'), many0(is_not("\"")), char('"')))(input)?;
     Ok((rest, &m[1..m.len() - 1]))
 }
 
@@ -158,13 +158,15 @@ pub fn label_match(input: &str) -> IResult<&str, FilterItem> {
     let (rest, _) = opt(tag(" "))(rest)?;
     let (rest, target) = string_literal(rest)?;
     let (rest, _) = opt(tag(" "))(rest)?;
-    Ok((rest, FilterItem { 
-    	subject: subject.to_string(), 
-    	op: op, 
-    	target: target.to_string() 
-    }))
+    Ok((
+        rest,
+        FilterItem {
+            subject: subject.to_string(),
+            op: op,
+            target: target.to_string(),
+        },
+    ))
 }
-
 
 pub fn vector_selector(input: &str) -> IResult<&str, FilterItems> {
     let (rest, filters) = separated_list0(char(','), label_match)(input)?;
@@ -180,7 +182,10 @@ pub struct FileItem {
 
 impl FileItem {
     fn to_row(self) -> String {
-        format!("|{}|{}|{}|{}|\n", self.file_creation_time, self.is_dir, self.name, self.file_owner)
+        format!(
+            "|{}|{}|{}|{}|\n",
+            self.file_creation_time, self.is_dir, self.name, self.file_owner
+        )
     }
 }
 
@@ -195,7 +200,7 @@ impl HasLookup for &FileItem {
                     0
                 }
             }
-            _ => 0
+            _ => 0,
         }
     }
 
@@ -211,7 +216,7 @@ impl HasLookup for &FileItem {
             }
             "uid" => format!("{}", self.file_owner).to_string(),
             "created" => self.file_creation_time.clone(),
-            _ => "ERROR".to_string()
+            _ => "ERROR".to_string(),
         }
     }
 }
@@ -229,8 +234,8 @@ impl FileTable {
                 ("name".to_string(), "The file name".to_string()),
                 ("dir".to_string(), "The file type".to_string()),
                 ("uid".to_string(), "The file owner".to_string()),
-                ("created".to_string(), "The file creation time".to_string())
-            ])
+                ("created".to_string(), "The file creation time".to_string()),
+            ]),
         }
     }
 
@@ -245,12 +250,19 @@ impl FileTable {
                 let s = x.to_row();
                 table_str.push_str(&s);
             } else {
-               let s = format!("|{}|\n", cols.into_iter().map(|z| (&x).lookup_str(&z.to_string())).filter(|y| y!="").collect::<Vec<String>>().join("|"));
-               table_str.push_str(&s);
+                let s = format!(
+                    "|{}|\n",
+                    cols.into_iter()
+                        .map(|z| (&x).lookup_str(&z.to_string()))
+                        .filter(|y| y != "")
+                        .collect::<Vec<String>>()
+                        .join("|")
+                );
+                table_str.push_str(&s);
             }
         }
         table_str
-    }    
+    }
 }
 
 impl HasSchema for FileTable {
@@ -263,7 +275,6 @@ impl HasSchema for FileTable {
     }
 }
 
-
 pub struct ProcItem {
     pub pid: u32,
     pub cmdline: String,
@@ -275,7 +286,7 @@ impl HasLookup for &ProcItem {
         match attribute.as_str() {
             "pid" => self.pid,
             "uid" => self.owner,
-            _ => 0
+            _ => 0,
         }
     }
 
@@ -284,7 +295,7 @@ impl HasLookup for &ProcItem {
             "pid" => format!("{}", self.pid).to_string(),
             "cmdline" => self.cmdline.clone(),
             "uid" => format!("{}", self.owner).to_string(),
-            _ => "ERROR".to_string()
+            _ => "ERROR".to_string(),
         }
     }
 }
@@ -306,9 +317,15 @@ impl ProcTable {
             table: Vec::new(),
             schema: BTreeMap::from([
                 ("pid".to_string(), "The process ID".to_string()),
-                ("uid".to_string(), "The user who ran the program".to_string()),
-                ("cmdline".to_string(), "The command used to run the program".to_string())
-            ])
+                (
+                    "uid".to_string(),
+                    "The user who ran the program".to_string(),
+                ),
+                (
+                    "cmdline".to_string(),
+                    "The command used to run the program".to_string(),
+                ),
+            ]),
         }
     }
 
@@ -323,12 +340,19 @@ impl ProcTable {
                 let s = x.to_row();
                 table_str.push_str(&s);
             } else {
-               let s = format!("|{}|\n", cols.into_iter().map(|z| (&x).lookup_str(&z.to_string())).filter(|y| y!="").collect::<Vec<String>>().join("|"));
-               table_str.push_str(&s);
+                let s = format!(
+                    "|{}|\n",
+                    cols.into_iter()
+                        .map(|z| (&x).lookup_str(&z.to_string()))
+                        .filter(|y| y != "")
+                        .collect::<Vec<String>>()
+                        .join("|")
+                );
+                table_str.push_str(&s);
             }
         }
         table_str
-    }    
+    }
 }
 
 impl HasSchema for ProcTable {
@@ -341,19 +365,22 @@ impl HasSchema for ProcTable {
     }
 }
 
-
 pub fn export<T: HasSchema>(table: T, cols: &mut Vec<String>) -> String {
     let mut table_str = String::new();
     if cols.len() == 0 || cols[0] == "*" {
-      let s = table.get_schema();
-      let col_vec = join(s.keys().cloned(), "**|**");
-      let n = s.len();
-      let row_sep = "|:-".repeat(n);
-      let header_row = format!("{}|\n|**{}**|\n{}|\n", row_sep, col_vec, row_sep);
-      table_str.push_str(&header_row);
+        let s = table.get_schema();
+        let col_vec = join(s.keys().cloned(), "**|**");
+        let n = s.len();
+        let row_sep = "|:-".repeat(n);
+        let header_row = format!("{}|\n|**{}**|\n{}|\n", row_sep, col_vec, row_sep);
+        table_str.push_str(&header_row);
     } else {
         let s = table.get_schema();
-        let filtered_cols = join(cols.into_iter().filter(|x| s.contains_key(&x.clone() as &str)), "**|**");
+        let filtered_cols = join(
+            cols.into_iter()
+                .filter(|x| s.contains_key(&x.clone() as &str)),
+            "**|**",
+        );
         let n = cols.len();
         let row_sep = "|:-".repeat(n);
         let header_row = format!("{}|\n|**{}**|\n{}|\n", row_sep, filtered_cols, row_sep);
@@ -363,7 +390,6 @@ pub fn export<T: HasSchema>(table: T, cols: &mut Vec<String>) -> String {
     let body = table.get_table_body(&cols);
     table_str.push_str(&body);
     table_str
-
 }
 
 fn get_pids(x: &String) -> Result<u32, String> {
@@ -371,17 +397,16 @@ fn get_pids(x: &String) -> Result<u32, String> {
     let m = re.captures_iter(&x[..]).next();
     match m {
         Some(t) => {
-          let pid: u32 = t[1].parse().unwrap();
-          Ok(pid)
-        },
-        None => Err("Not a proc dir".to_string())
+            let pid: u32 = t[1].parse().unwrap();
+            Ok(pid)
+        }
+        None => Err("Not a proc dir".to_string()),
     }
- }
+}
 
-
- fn dir_to_list(file_path: String) -> Result<Vec<String>, String> {
+fn dir_to_list(file_path: String) -> Result<Vec<String>, String> {
     let path = Path::new(&file_path);
-    if !path.exists(){
+    if !path.exists() {
         return Err("Path does not exist!".to_string());
     }
     let paths = fs::read_dir(&path).unwrap();
@@ -408,63 +433,62 @@ fn read_file_to_stdout(file_path: &Path) -> String {
 pub fn query_dir(cols: &mut Vec<String>, filter_str: &String) -> Result<String, String> {
     let res = vector_selector(&filter_str[..]);
     let mut filters = match res {
-        Ok((r, x)) => {
-            println!("{}", r);
-            println!("{}", x);
-            x
+        Ok((_, x)) => x,
+        _ => FilterItems {
+            filters: Vec::new(),
         },
-        _ => FilterItems{ filters: Vec::new() }
     };
 
     match filters.get_path() {
         Some(file_path) => {
             let path = Path::new(&file_path);
-    if !path.exists(){
-        return Err("Path does not exist!".to_string());
-    }
+            if !path.exists() {
+                return Err("Path does not exist!".to_string());
+            }
 
-    let paths = fs::read_dir(&path).unwrap();
-    let mut dirs: FileTable = FileTable::new();
-    for path in paths {
-        let entry = path.unwrap();
-        let p = entry.path();
+            let paths = fs::read_dir(&path).unwrap();
+            let mut dirs: FileTable = FileTable::new();
+            for path in paths {
+                let entry = path.unwrap();
+                let p = entry.path();
 
-        let path_str = p.display().to_string();
-        let md = p.metadata().expect("check metadata failed");
+                let path_str = p.display().to_string();
+                let md = p.metadata().expect("check metadata failed");
 
-        //let file_type = format!("{:?}", md.file_type()).to_string();
-        let ct = match md.created() {
-            Ok(t) => {
-                let datetime: DateTime<Utc> = t.into();
-                format!("{}", datetime.format("%d/%m/%Y %T")).to_string()
-            },
-            _ => "??".to_string()
-        };
+                //let file_type = format!("{:?}", md.file_type()).to_string();
+                let ct = match md.created() {
+                    Ok(t) => {
+                        let datetime: DateTime<Utc> = t.into();
+                        format!("{}", datetime.format("%d/%m/%Y %T")).to_string()
+                    }
+                    _ => "??".to_string(),
+                };
 
-        let fi = FileItem {
-            name: path_str,
-            is_dir: p.is_dir(),
-            file_owner: md.uid(),
-            file_creation_time: ct,
-        };
-        let f = &filters;
-        let b = f.check(&fi);
-        if b {
-            dirs.add_row(fi);
+                let fi = FileItem {
+                    name: path_str,
+                    is_dir: p.is_dir(),
+                    file_owner: md.uid(),
+                    file_creation_time: ct,
+                };
+                let f = &filters;
+                let b = f.check(&fi);
+                if b {
+                    dirs.add_row(fi);
+                }
+            }
+            Ok(export(dirs, cols))
         }
-        }
-        Ok(export(dirs, cols))
-    },
-        _ => Err("Path not specified".to_string())
+        _ => Err("Path not specified".to_string()),
     }
-
 }
 
 pub fn query_procs(cols: &mut Vec<String>, filter_str: &String) -> Result<String, String> {
     let res = vector_selector(&filter_str[..]);
     let filters = match res {
         Ok((_, x)) => x,
-        _ => FilterItems{ filters: Vec::new() }
+        _ => FilterItems {
+            filters: Vec::new(),
+        },
     };
 
     let proc_dirs = dir_to_list("/proc/".to_string()).unwrap();
@@ -485,21 +509,20 @@ pub fn query_procs(cols: &mut Vec<String>, filter_str: &String) -> Result<String
                     Ok(md) => md.uid(),
                     _ => 0,
                 };
-                let pi = ProcItem{
+                let pi = ProcItem {
                     pid: z,
                     cmdline: res,
-                    owner: uid 
+                    owner: uid,
                 };
                 let f = &filters;
                 let b = f.check(&pi);
                 if b {
                     proc_items.add_row(pi);
                 }
-            }, 
-            _ => ( ),
+            }
+            _ => (),
         }
     }
-    //Ok(proc_items.export(cols))
     Ok(export(proc_items, cols))
 }
 
@@ -512,7 +535,6 @@ pub struct OSVersion {
 pub struct OSVersionTable {
     pub columns: HashMap<String, String>,
 }
-
 
 fn get_os_version_info() -> Result<OSVersionTable, String> {
     let path = Path::new("/proc/version");
@@ -529,8 +551,8 @@ fn get_os_version_info() -> Result<OSVersionTable, String> {
         columns: HashMap::from([
             ("kernel_version".to_string(), version.to_string()),
             ("build_id".to_string(), build_id.to_string()),
-            ("gcc_version".to_string(), gcc_v.to_string())
-        ])
+            ("gcc_version".to_string(), gcc_v.to_string()),
+        ]),
     };
 
     Ok(os_version_table)
@@ -539,8 +561,12 @@ fn get_os_version_info() -> Result<OSVersionTable, String> {
 pub fn do_get_os_version_info(cols: &mut Vec<String>) -> Result<HashMap<String, String>, String> {
     let os_v = get_os_version_info().unwrap();
     if cols.len() == 0 || cols[0] == "*" {
-        return Ok(os_v.columns)
+        return Ok(os_v.columns);
     }
-    let res: HashMap<String, String> = cols.into_iter().filter(|x| os_v.columns.contains_key(&x as &str)).map(|x| (x.clone(), os_v.columns[x].clone())).collect();
+    let res: HashMap<String, String> = cols
+        .into_iter()
+        .filter(|x| os_v.columns.contains_key(&x as &str))
+        .map(|x| (x.clone(), os_v.columns[x].clone()))
+        .collect();
     Ok(res)
 }
