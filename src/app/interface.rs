@@ -3,8 +3,8 @@ use termimad::MadSkin;
 use ansi_term::{Colour, Style};
 use termimad::Alignment;
 use std::io::{self, Write};
-
-use super::engine::{ProcItem, FileItem};
+use std::collections::HashMap;
+//use super::engine::{ProcItem, FileItem};
 
 pub fn print_banner() {
     let banner = "
@@ -19,7 +19,7 @@ pub fn print_banner() {
 }
 
 pub fn print_prompt() {
-    println!("h - help, fs - filesystem query, ps - process query, q - quit");
+    println!("h - help, q - quit");
     print!(">>> ");
     io::stdout().flush().unwrap();
 }
@@ -28,6 +28,7 @@ pub fn print_proc_help() {
     println!("ls - list processes, find - find process by name, search - find processes containing a particular string, mem - show memory usage, count - count the number of running processes");
 }
 
+/*
 pub fn print_proc_table(entries: Vec<ProcItem>) {
     println!("");
 
@@ -45,6 +46,38 @@ pub fn print_proc_table(entries: Vec<ProcItem>) {
     println!("{}", skin.term_text(&text_template[..]));
     println!("\n");
 }
+*/
+
+pub fn print_hash_table(entries: HashMap<String, String>) {
+    println!("");
+
+    let mut skin = MadSkin::default();
+    let mut text_template: String = "|:-|:-|\n".to_string();
+    
+    skin.paragraph.align = Alignment::Left;
+    skin.table.align = Alignment::Left;
+    for (k, v) in &entries {
+        let s = format!("|**{}**|{}|\n", k, v);
+        text_template.push_str(&s);
+    }
+    text_template.push_str("|-");
+
+    println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+
+}
+
+pub fn print_data_table(table: String) {
+    println!("");
+    let mut skin = MadSkin::default();
+
+    skin.paragraph.align = Alignment::Left;
+    skin.table.align = Alignment::Left;
+    let text_template = format!("{}|-", table);
+    println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+
+}
 
 pub fn print_proc_list(entries: Vec<String>) {
     for x in entries {
@@ -53,6 +86,7 @@ pub fn print_proc_list(entries: Vec<String>) {
     println!("\n");
 }
 
+/*
 pub fn print_dir_list(dir_name: &String, entries: Vec<FileItem>){
     let mut text_template: String = format!("{}\n", Style::new().bold().paint(dir_name)).to_string();
     
@@ -72,3 +106,4 @@ pub fn print_dir_list(dir_name: &String, entries: Vec<FileItem>){
 
     println!("\n");
 }
+*/

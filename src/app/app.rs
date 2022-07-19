@@ -1,65 +1,81 @@
 use super::interface;
 use super::engine;
 use std::io;
+use regex::Regex;
 
-
-pub fn call_fs_query(x: String) {
-    match engine::query_folder(&x) {
-        Ok(l) => interface::print_dir_list(&x, l),
-        Err(e) => println!("{}", e),
-    }
+pub struct UserInput {
+    table_name: String,
+    params: Vec<String>,
+    filter_string: String,
 }
 
-pub fn do_proc_list() {
-    match engine::query_procs() {
-        Ok(l) => interface::print_proc_table(l),
-        Err(e) => println!("{}", e),
-    }
-}
 
-pub fn do_find_proc(m: Option<&str>) {
+pub fn parse_option(input: String) -> Result<UserInput, String> {
+    let re = Regex::new(r"select\s([a-zA-z_\*,|\s?]+)\sfrom\s([a-z_]+)(\swhere\s(.*))?;").unwrap();
+    let mut capts = re.captures_iter(&input[..]);
+    let m = capts.next();
+    
     match m {
-        Some(x) => {
-            match engine::do_find_procs(&x) {
-                Ok(l) => interface::print_proc_table(l),
-                Err(e) => println!("{}", e),
+        Some(p) => {
+            //println!("{:?}", p);
+            let par: Vec<String> = p[1].split(",").map(|x| x.trim().to_string()).collect();
+            let filter_string = match p.get(4) {
+                Some(_) => p[4].to_string(),
+                _ => String::new(),
+            };
+            
+            let ui = UserInput{
+                table_name: p[2].to_string(),
+                params: par,
+                filter_string: filter_string,
+            };
+            Ok(ui)
+        },
+        _ => Err("Could not parse input".to_string())
+    }
+
+}
+
+fn handle_input(ui:  &mut UserInput) {
+    match ui.table_name.as_str() {
+        "procs" => {
+            /*let filter_items_test = engine::FilterItems{
+                filters: vec![engine::FilterItem::new("uid".to_string(), engine::FilterOp::Eq, "1000".to_string())]
+            };*/
+            match engine::query_procs(&mut ui.params, &ui.filter_string) {
+                Ok(res) => interface::print_data_table(res),
+                _ => println!("ERROR!"),
             }
         },
-        _ => println!("[!] Expected format: find <proc name>"),
-    }
-}
-
-pub fn do_search_proc(m: Option<&str>) {
-    match m {
-        Some(x) => {
-            match engine::search_proc_memory(&x) {
-                Ok(l) => interface::print_proc_list(l),
-                Err(e) => println!("{}", e),
+        "fs" => println!("to do!"),
+        "os_version" => {
+            match engine::do_get_os_version_info(&mut ui.params) {
+                Ok(res) => interface::print_hash_table(res),
+                _ => println!("ERROR!"),
             }
         },
-        _ => println!("[!] Expected format: search <str>"),
+        _ => println!("to do: {}", ui.table_name),
     }
 }
 
 
-pub fn call_proc_query(input: String) {
-    let mut args= input.splitn(2, " ");
-    let o = args.next();
-    match o {
-        Some("ls") => do_proc_list(),
-        Some("find") => {
-            let m = args.next();
-            do_find_proc(m);
-        },
-        Some("search") => {
-            let m = args.next();
-            do_search_proc(m);
+
+pub fn mainloop() {
+    interface::print_banner();
+    loop {
+        interface::print_prompt();
+        let input = get_option();
+        if input == "q" {
+            break
+        } else {
+            match parse_option(input) {
+                Ok(mut ui) => handle_input(&mut ui),
+                Err(e) => println!("ERROR: {}", e),
+            }
         }
-        Some(_) => println!("TO DO!"),
-        _ => interface::print_proc_help()
     }
 }
-
+/*
 pub fn mainloop() {
     interface::print_banner();
     loop {
@@ -82,6 +98,7 @@ pub fn mainloop() {
     }
 
 }
+*/
 
 pub fn get_option() -> String {
     let mut input = String::new();
