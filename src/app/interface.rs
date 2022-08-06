@@ -46,6 +46,13 @@ select <columns> from <table> where <key value pairs>;
 
 * values must be surronded by quotations
 * key-value pairs must be seperated by a comma
+
+### Table Schema:
+
+To print table schema:
+
+show <table name>.schema;
+
 "#;
     println!("");
     println!("{}", skin.term_text(&text_template[..]));
