@@ -52,6 +52,45 @@ select <columns> from <table> where <key value pairs>;
     println!("\n");
 }
 
+pub fn print_procs_schema() {
+    println!("");
+
+    let mut skin = MadSkin::default();
+    let mut text_template: String  = "|:-|:-|\n|**pid**|The Process ID|\n|**uid**|The ID of the user who ran the program|\n|**cmdline**|The command used to run the program|\n|-".to_string();
+
+    skin.paragraph.align = Alignment::Left;
+    skin.table.align = Alignment::Left;
+
+    println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+}
+
+pub fn print_fs_schema() {
+    println!("");
+
+    let mut skin = MadSkin::default();
+    let mut text_template: String  = "|:-|:-|\n|**name*|The name of the file|\n|**dir**|The file type|\n|**uid**|The uid of the file owner|\n|**created**|The file creation time|\n|-".to_string();
+
+    skin.paragraph.align = Alignment::Left;
+    skin.table.align = Alignment::Left;
+
+    println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+}
+
+pub fn print_os_version_schema() {
+    println!("");
+
+    let mut skin = MadSkin::default();
+    let mut text_template: String  = "|:-|:-|\n|**kernel_version**|The version of the Linux kernel in use|\n|**build_id**|Hopefully the distro name?|\n|**gcc_version**|The version of the gcc compiler in use|\n|-".to_string();
+
+    skin.paragraph.align = Alignment::Left;
+    skin.table.align = Alignment::Left;
+
+    println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+}
+
 pub fn print_hash_table(entries: HashMap<String, String>) {
     println!("");
 

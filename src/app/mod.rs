@@ -4,7 +4,7 @@ mod interface;
 
 pub use self::app::mainloop;
 pub use self::interface::{
-    print_banner, print_data_table, print_hash_table, print_help, print_prompt,
+    print_banner, print_data_table, print_hash_table, print_help, print_prompt,print_fs_schema,print_procs_schema,print_os_version_schema,
 };
 //pub use self::engine::{query_folder, query_procs, search_proc_memory, FileItem, ProcItem, do_get_os_version_info};
 pub use self::engine::{

@@ -9,6 +9,18 @@ pub struct UserInput {
     filter_string: String,
 }
 
+pub fn parse_schema_query(input: String) -> Result<String, String> {
+    let re = Regex::new(r"show\s([a-zA-z_]+)\.schema;").unwrap();
+    let mut capts = re.captures_iter(&input[..]);
+    let m = capts.next();
+    match m {
+        Some(p) => {
+            Ok(p[1].to_string())
+        },
+        _ => Err("Not a schema query".to_string()),
+    }
+}
+
 pub fn parse_option(input: String) -> Result<UserInput, String> {
     let re = Regex::new(r"select\s([a-zA-z_\*,|\s?]+)\sfrom\s([a-z_]+)(\swhere\s(.*))?;").unwrap();
     let mut capts = re.captures_iter(&input[..]);
@@ -57,6 +69,15 @@ fn handle_input(ui: &mut UserInput) {
     }
 }
 
+pub fn get_schema(table: String) {
+    match table.as_str() {
+        "os_version" => interface::print_os_version_schema(),
+        "procs" => interface::print_procs_schema(),
+        "fs" => interface::print_fs_schema(),
+        _ => println!("ERROR: Table {} does not exist!", table),
+    }
+}
+
 pub fn mainloop() {
     interface::print_banner();
     loop {
@@ -67,9 +88,16 @@ pub fn mainloop() {
         } if input == "h" {
             interface::print_help();
         } else {
-            match parse_option(input) {
+            match parse_schema_query(input.clone()) {
+            Ok(x) => {
+                get_schema(x)
+            },
+            _ => {
+             match parse_option(input) {
                 Ok(mut ui) => handle_input(&mut ui),
                 Err(e) => println!("ERROR: {}", e),
+                }  
+            }
             }
         }
     }
