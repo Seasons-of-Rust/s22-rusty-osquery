@@ -18,7 +18,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::alpha1,
     character::complete::alphanumeric1,
-    character::complete::{char, digit1},
+    character::complete::{char, digit1, one_of},
     combinator::opt,
     combinator::recognize,
     combinator::rest,
@@ -103,9 +103,25 @@ pub struct FilterItems {
 impl FilterItems {
     pub fn check<T: HasLookup>(&self, row: T) -> bool {
         self.filters.iter().all(|x| match x.op {
-            FilterOp::Eq => row.lookup(&x.subject) == (x.target.parse::<u32>().unwrap()),
-            FilterOp::Leq => row.lookup(&x.subject) <= (x.target.parse::<u32>().unwrap()),
-            FilterOp::Geq => row.lookup(&x.subject) >= (x.target.parse::<u32>().unwrap()),
+            FilterOp::Eq => {
+                match x.target.parse::<u32>() {
+                    Ok(z) => row.lookup(&x.subject) == z,
+                    _ => row.lookup_str(&x.subject) == x.target,
+                }
+            },
+            FilterOp::Leq => {
+                match x.target.parse::<u32>() {
+                    Ok(z) => row.lookup(&x.subject) <= z,
+                    _ => false
+                }
+                
+            },
+            FilterOp::Geq => {
+                match x.target.parse::<u32>() {
+                    Ok(z) => row.lookup(&x.subject) <= z,
+                    _ => false
+                }
+            },
             FilterOp::Like => row.lookup_str(&x.subject).contains(&x.target),
             _ => false,
         })
@@ -136,9 +152,9 @@ impl fmt::Display for FilterItems {
     }
 }
 
-pub fn string_literal(input: &str) -> IResult<&str, &str> {
-    let (rest, m) = recognize(delimited(char('"'), many0(is_not("\"")), char('"')))(input)?;
-    Ok((rest, &m[1..m.len() - 1]))
+pub fn target_match(input: &str) -> IResult<&str, &str> {
+    let (rest, m) = alt((recognize(delimited(char('"'), many0(is_not("\"")), char('"'))), recognize(many0(one_of("0123456789")))))(input)?;
+    Ok((rest, m))
 }
 
 pub fn identifier(input: &str) -> IResult<&str, &str> {
@@ -156,14 +172,14 @@ pub fn label_match(input: &str) -> IResult<&str, FilterItem> {
     let (rest, _) = opt(tag(" "))(rest)?;
     let (rest, op) = match_op(rest)?;
     let (rest, _) = opt(tag(" "))(rest)?;
-    let (rest, target) = string_literal(rest)?;
+    let (rest, target) = target_match(rest)?;
     let (rest, _) = opt(tag(" "))(rest)?;
     Ok((
         rest,
         FilterItem {
             subject: subject.to_string(),
             op: op,
-            target: target.to_string(),
+            target: target.to_string().replace('"', ""),
         },
     ))
 }
@@ -302,7 +318,7 @@ impl HasLookup for &ProcItem {
 
 impl ProcItem {
     pub fn to_row(self) -> String {
-        format!("|{}|{}|{}|\n", self.pid, self.cmdline, self.owner)
+        format!("|{}|{}|{}|\n", self.cmdline, self.pid, self.owner)
     }
 }
 

@@ -30,7 +30,7 @@ pub fn print_help() {
     let text_template = r#"
 ## Help
 
-### Avialable Tables:
+### Available Tables:
 
 |:-|:-|
 |**Table**|**Description**|
@@ -124,5 +124,24 @@ pub fn print_data_table(table: String) {
     skin.table.align = Alignment::Left;
     let text_template = format!("{}|-", table);
     println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+}
+
+pub fn dog() {
+    println!("");
+    let lesser_dog =  "
+    ░░░░░░░░░░░▄▀▄▀▀▀▀▄▀▄░░░░░░░░░░░░░░░░░░
+    ░░░░░░░░░░░█░░░░░░░░▀▄░░░░░░▄░░░░░░░░░░
+    ░░░░░░░░░░█░░▀░░▀░░░░░▀▄▄░░█░█░░░░░░░░░
+    ░░░░░░░░░░█░▄░█▀░▄░░░░░░░▀▀░░█░░░░░░░░░
+    ░░░░░░░░░░█░░▀▀▀▀░░░░░░░░░░░░█░░░░░░░░░
+    ░░░░░░░░░░█░░░░░░░░░░░░░░░░░░█░░░░░░░░░
+    ░░░░░░░░░░█░░░░░░░░░░░░░░░░░░█░░░░░░░░░
+    ░░░░░░░░░░░█░░▄▄░░▄▄▄▄░░▄▄░░█░░░░░░░░░░
+    ░░░░░░░░░░░█░▄▀█░▄▀░░█░▄▀█░▄▀░░░░░░░░░░
+    ░░░░░░░░░░░░▀░░░▀░░░░░▀░░░▀░░░░░░░░░░░░
+    secret dog";
+
+    println!("{}", lesser_dog);
     println!("\n");
 }

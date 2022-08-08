@@ -17,7 +17,7 @@ pub fn parse_schema_query(input: String) -> Result<String, String> {
         Some(p) => {
             Ok(p[1].to_string())
         },
-        _ => Err("Not a schema query".to_string()),
+        _ => Err("Error! If you can see this message something is really wrong. My bad.".to_string()),
     }
 }
 
@@ -42,7 +42,7 @@ pub fn parse_option(input: String) -> Result<UserInput, String> {
             };
             Ok(ui)
         }
-        _ => Err("Could not parse input".to_string()),
+        _ => Err("Oh Nos! Expected query syntax is select <cols> from <table> where <cond>;\n".to_string()),
     }
 }
 
@@ -65,7 +65,7 @@ fn handle_input(ui: &mut UserInput) {
             Ok(res) => interface::print_hash_table(res),
             _ => println!("ERROR!"),
         },
-        _ => println!("to do: {}", ui.table_name),
+        _ => println!("Uh Oh! Table {} does not exist.", ui.table_name),
     }
 }
 
@@ -74,7 +74,7 @@ pub fn get_schema(table: String) {
         "os_version" => interface::print_os_version_schema(),
         "procs" => interface::print_procs_schema(),
         "fs" => interface::print_fs_schema(),
-        _ => println!("ERROR: Table {} does not exist!", table),
+        _ => println!("Uh Oh! Table {} does not exist!", table),
     }
 }
 
@@ -87,6 +87,8 @@ pub fn mainloop() {
             break;
         } if input == "h" {
             interface::print_help();
+        } else if input == "show dog;" {
+            interface::dog();
         } else {
             match parse_schema_query(input.clone()) {
             Ok(x) => {
@@ -95,7 +97,7 @@ pub fn mainloop() {
             _ => {
              match parse_option(input) {
                 Ok(mut ui) => handle_input(&mut ui),
-                Err(e) => println!("ERROR: {}", e),
+                Err(e) => println!("⚠ {}", e),
                 }  
             }
             }
