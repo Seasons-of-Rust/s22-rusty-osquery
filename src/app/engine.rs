@@ -293,6 +293,7 @@ impl HasSchema for FileTable {
 
 pub struct ProcItem {
     pub pid: u32,
+    pub ppid: u32,
     pub cmdline: String,
     pub owner: u32,
 }
@@ -301,6 +302,7 @@ impl HasLookup for &ProcItem {
     fn lookup(&self, attribute: &String) -> u32 {
         match attribute.as_str() {
             "pid" => self.pid,
+            "ppid" => self.ppid,
             "uid" => self.owner,
             _ => 0,
         }
@@ -309,6 +311,7 @@ impl HasLookup for &ProcItem {
     fn lookup_str(&self, attribute: &String) -> String {
         match attribute.as_str() {
             "pid" => format!("{}", self.pid).to_string(),
+            "ppid" => format!("{}", self.ppid).to_string(),
             "cmdline" => self.cmdline.clone(),
             "uid" => format!("{}", self.owner).to_string(),
             _ => "ERROR".to_string(),
@@ -318,7 +321,7 @@ impl HasLookup for &ProcItem {
 
 impl ProcItem {
     pub fn to_row(self) -> String {
-        format!("|{}|{}|{}|\n", self.cmdline, self.pid, self.owner)
+        format!("|{}|{}|{}|{}|\n", self.cmdline, self.pid, self.ppid, self.owner)
     }
 }
 
@@ -333,6 +336,7 @@ impl ProcTable {
             table: Vec::new(),
             schema: BTreeMap::from([
                 ("pid".to_string(), "The process ID".to_string()),
+                ("ppid".to_string(), "The parent process ID".to_string()),
                 (
                     "uid".to_string(),
                     "The user who ran the program".to_string(),
@@ -521,12 +525,15 @@ pub fn query_procs(cols: &mut Vec<String>, filter_str: &String) -> Result<String
                     let comm_path = Path::new(&comm_dir);
                     res = read_file_to_stdout(&comm_path);
                 }
+                
+
                 let uid = match cmdpath.metadata() {
                     Ok(md) => md.uid(),
                     _ => 0,
                 };
                 let pi = ProcItem {
                     pid: z,
+                    ppid: 0,
                     cmdline: res,
                     owner: uid,
                 };
