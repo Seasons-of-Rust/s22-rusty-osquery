@@ -1,12 +1,36 @@
 # Rusty OSQuery
 
-Feature-Lacking osquery clone.
+> Feature-Lacking osquery clone.
 
-![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/sc1.png)
+Help Menu:
 
-![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/sc2.png)
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/screenshots/sc1.png)
 
-![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/sc3.png)
+Schema Example:
+
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/screenshots/sc2.png)
+
+Filtering Example:
+
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/screenshots/sc3.png)
+
+Searching Example:
+
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/screenshots/sc4.png)
+
+Filtering Example 2:
+
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/screenshots/sc5.png)
+
+Searching Example 2:
+
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/screenshots/sc6.png)
+
+Best Feature:
+
+![screenshot example](https://github.com/Summer-of-Rust/s22-rusty-osquery/blob/main/screenshots/sc7.png)
+
+Not gonna lie, this is probably going to go unfinished and float out into the the deepest corner of the my github forever.
 
 ## License
 

@@ -56,7 +56,15 @@ fn handle_input(ui: &mut UserInput) {
                 Ok(res) => interface::print_data_table(res),
                 _ => println!("ERROR!"),
             }
-        }
+        },
+        "proc_maps" => match engine::query_proc_maps(&mut ui.params, &ui.filter_string) {
+            Ok(res) => interface::print_data_table(res),
+            _ => println!("ERROR!")
+        },
+        "net" => match engine::query_net(&mut ui.params, &ui.filter_string) {
+            Ok(res) => interface::print_data_table(res),
+            _ => println!("ERROR!")
+        },
         "fs" => match engine::query_dir(&mut ui.params, &ui.filter_string) {
             Ok(res) => interface::print_data_table(res),
             _ => println!("ERROR!"),
@@ -74,6 +82,8 @@ pub fn get_schema(table: String) {
         "os_version" => interface::print_os_version_schema(),
         "procs" => interface::print_procs_schema(),
         "fs" => interface::print_fs_schema(),
+        "net" => interface::print_net_schema(),
+        "proc_maps" => interface::print_proc_map_schema(),
         _ => println!("Uh Oh! Table {} does not exist!", table),
     }
 }
@@ -83,9 +93,9 @@ pub fn mainloop() {
     loop {
         interface::print_prompt();
         let input = get_option();
-        if input == "q" {
+        if input == "q" || input == "quit" {
             break;
-        } if input == "h" {
+        } if input == "h" || input == "help" {
             interface::print_help();
         } else if input == "show dog;" {
             interface::dog();

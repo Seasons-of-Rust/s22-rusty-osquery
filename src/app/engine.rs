@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 use std::path::Path;
+//use hex::decode;
 
 //use std::io;
 //use std::fs::File;
@@ -127,13 +128,13 @@ impl FilterItems {
         })
     }
 
-    pub fn get_path(&mut self) -> Option<String> {
-        let index = self.filters.iter().position(|x| x.subject == "path");
+    pub fn get_field(&mut self, field: String) -> Option<String> {
+        let index = self.filters.iter().position(|x| x.subject == field);
         match index {
             Some(i) => {
                 let path = self.filters[i].target.clone();
                 self.filters.remove(i);
-                Some(path)
+                Some(format!("{}", path))
             }
             _ => None,
         }
@@ -291,6 +292,45 @@ impl HasSchema for FileTable {
     }
 }
 
+pub struct ProcMapItem {
+    pub start_addr: String,
+    pub end_addr: String,
+    pub permissions: String,
+    pub size_maybe: String,
+    pub start_time: String,
+    pub file_desc: u32,
+    pub file_name: String,
+}
+
+impl HasLookup for &ProcMapItem {
+    fn lookup(&self, attribute: &String) -> u32 {
+        match attribute.as_str() {
+            "file_desc" => self.file_desc,
+            _ => 0,
+        }
+    }
+
+    fn lookup_str(&self, attribute: &String) -> String {
+        match attribute.as_str() {
+            "start_addr" => self.start_addr.clone(),
+            "end_addr" => self.end_addr.clone(),
+            "permissions" => self.permissions.clone(),
+            "size_maybe" => self.size_maybe.clone(),
+            "start_time" => self.start_time.clone(),
+            "file_desc" => format!("{}", self.file_desc).to_string(),
+            "file_name" => self.file_name.clone(),
+            _ => "X(".to_string()
+        }
+    }
+}
+
+
+impl ProcMapItem {
+    pub fn to_row(self) -> String {
+        format!("|{}|{}|{}|{}|{}|{}|{}|\n", self.end_addr, self.file_desc, self.file_name, self.permissions, self.size_maybe, self.start_addr, self.start_time)    
+    }
+}
+
 pub struct ProcItem {
     pub pid: u32,
     pub ppid: u32,
@@ -318,6 +358,201 @@ impl HasLookup for &ProcItem {
         }
     }
 }
+
+
+pub struct NetItem {
+    pub uid: u32,
+    pub local_address: String,
+    pub remote_address: String,
+    pub st: String,
+    pub timeout: u32,
+    pub inode: u32,
+    pub ref_cnt: u32,
+    pub protocol: String,
+}
+
+impl HasLookup for &NetItem {
+    fn lookup(&self, attribute: &String) -> u32 {
+        match attribute.as_str() {
+            "uid" => self.uid,
+            "timeout" => self.timeout,
+            "inode" => self.inode,
+            "ref_cnt" => self.ref_cnt,
+            _ => 0,
+        }
+    }
+
+    fn lookup_str(&self, attribute: &String) -> String {
+        match attribute.as_str() {
+            "uid" => format!("{}", self.uid).to_string(),
+            "timeout" => format!("{}", self.timeout).to_string(),
+            "local_address" => self.local_address.clone(),
+            "remote_address" => self.remote_address.clone(),
+            "st" => self.st.clone(),
+            "inode" => format!("{}", self.ref_cnt).to_string(),
+            "ref_cnt" => format!("{}", self.ref_cnt).to_string(),
+            "protocol" => self.protocol.clone(),
+            _ => "ERROR".to_string(),
+        }
+    }
+}
+
+impl NetItem {
+    pub fn to_row(self) -> String {
+        format!("|{}|{}|{}|{}|{}|{}|{}|{}|\n", self.inode, self.local_address, self.protocol, self.ref_cnt, self.remote_address, self.st, self.timeout, self.uid)
+    }
+}
+
+pub struct NetTable {
+    pub table: Vec<NetItem>,
+    pub schema: BTreeMap<String, String>,
+}
+
+impl NetTable {
+    fn new() -> NetTable {
+        NetTable {
+            table: Vec::new(),
+            schema: BTreeMap::from([
+                ("inode".to_string(), "X".to_string()),
+                ("local_address".to_string(), "X".to_string()),
+                (
+                    "protocol".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "ref_cnt".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "remote_address".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "st".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "timeout".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "uid".to_string(),
+                    "X".to_string()
+                )
+            ]),
+        }
+    }
+
+    pub fn add_row(&mut self, item: NetItem) {
+        self.table.push(item);
+    }
+
+    pub fn get_body(self, cols: &Vec<String>) -> String {
+        let mut table_str = String::new();
+        for x in self.table {
+            if cols.len() == 0 || cols[0] == "*" {
+                let s = x.to_row();
+                table_str.push_str(&s);
+            } else {
+                let s = format!(
+                    "|{}|\n",
+                    cols.into_iter()
+                        .map(|z| (&x).lookup_str(&z.to_string()))
+                        .filter(|y| y != "")
+                        .collect::<Vec<String>>()
+                        .join("|")
+                );
+                table_str.push_str(&s);
+            }
+        }
+        table_str
+    }
+}
+
+impl HasSchema for NetTable {
+    fn get_schema(&self) -> &BTreeMap<String, String> {
+        &self.schema
+    }
+
+    fn get_table_body(self, cols: &Vec<String>) -> String {
+        self.get_body(&cols)
+    }
+}
+
+
+
+pub struct ProcMapTable {
+    pub table: Vec<ProcMapItem>,
+    pub schema: BTreeMap<String, String>,
+}
+
+impl ProcMapTable {
+    fn new() -> ProcMapTable {
+        ProcMapTable {
+            table: Vec::new(),
+            schema: BTreeMap::from([
+                ("start_addr".to_string(), "X".to_string()),
+                ("end_addr".to_string(), "X".to_string()),
+                (
+                    "permissions".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "size_maybe".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "start_time".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "file_desc".to_string(),
+                    "X".to_string(),
+                ),
+                (
+                    "file_name".to_string(),
+                    "X".to_string(),
+                ),
+            ]),
+        }
+    }
+
+    pub fn add_row(&mut self, item: ProcMapItem) {
+        self.table.push(item);
+    }
+
+    pub fn get_body(self, cols: &Vec<String>) -> String {
+        let mut table_str = String::new();
+        for x in self.table {
+            if cols.len() == 0 || cols[0] == "*" {
+                let s = x.to_row();
+                table_str.push_str(&s);
+            } else {
+                let s = format!(
+                    "|{}|\n",
+                    cols.into_iter()
+                        .map(|z| (&x).lookup_str(&z.to_string()))
+                        .filter(|y| y != "")
+                        .collect::<Vec<String>>()
+                        .join("|")
+                );
+                table_str.push_str(&s);
+            }
+        }
+        table_str
+    }
+}
+
+impl HasSchema for ProcMapTable {
+    fn get_schema(&self) -> &BTreeMap<String, String> {
+        &self.schema
+    }
+
+    fn get_table_body(self, cols: &Vec<String>) -> String {
+        self.get_body(&cols)
+    }
+}
+
 
 impl ProcItem {
     pub fn to_row(self) -> String {
@@ -450,6 +685,146 @@ fn read_file_to_stdout(file_path: &Path) -> String {
     }
 }
 
+pub fn query_proc_maps(cols: &mut Vec<String>, filter_str: &String) -> Result<String, String> {
+    let res = vector_selector(&filter_str[..]);
+    let mut filters = match res {
+        Ok((_, x)) => x,
+        _ => FilterItems {
+            filters: Vec::new(),
+        },
+    };
+    let mut proc_items: ProcMapTable = ProcMapTable::new();
+    match filters.get_field("pid".to_string()) {
+        Some(file_path) => {
+            let proc_path = format!("/proc/{}/maps", file_path);
+            let path = Path::new(&proc_path);
+            if !path.exists() {
+                return Err("Path does not exist!".to_string());
+            }
+
+            let mut res = read_file_to_stdout(&path);
+            let proc_entry_re = Regex::new(r"([0-9|a-f]+)\-([0-9|a-f]+)\s(\S{4})\s([0-9|a-f]+)\s(\d+:\d+)\s(\d+)\s+(\S+)?$").unwrap();
+            for l in res.lines() {
+                let mut capts = proc_entry_re.captures_iter(&l[..]);
+                let pm = capts.next();
+                match pm {
+                    Some(p) => {
+                        let file_name: String = match p.get(7) {
+                            Some(_) => p[7].to_string(),
+                            _ => "n/a".to_string()
+                        };
+                        
+                        let pmi = ProcMapItem {
+                            start_addr: p[1].to_string(),
+                            end_addr: p[2].to_string(),
+                            permissions: p[3].to_string(),
+                            size_maybe: p[4].to_string(),
+                            start_time: p[5].to_string(),
+                            file_desc: p[6].parse::<u32>().unwrap(),
+                            file_name: file_name.to_string(),
+                        };
+                        
+
+                        proc_items.add_row(pmi);
+                    }
+                    _ => (),
+                }
+            }
+            
+            Ok(export(proc_items, cols))
+        },
+        _ => Err("You must specify PID".to_string())
+    }
+    
+}
+
+
+pub fn query_net(cols: &mut Vec<String>, filter_str: &String) -> Result<String, String> {
+    let res = vector_selector(&filter_str[..]);
+    let mut filters = match res {
+        Ok((_, x)) => x,
+        _ => FilterItems {
+            filters: Vec::new(),
+        },
+    };
+    let mut net_items: NetTable = NetTable::new();
+    
+    let tcp_path = "/proc/net/tcp";
+    let udp_path = "/proc/net/udp";
+
+    let net_re = Regex::new(r"\d+:\s([0-9|A-F]+:[0-9|A-F]+)\s([0-9|A-F]+:[0-9|A-F]+)\s([0-9|A-F]+)\s[0-9|A-F]+:[0-9|A-F]+\s[0-9|A-F]+:[0-9|A-F]+\s\d+\s+(\d+)\s+(\d+)\s(\d+)\s(\d+)").unwrap();
+
+    let path = Path::new(&tcp_path);
+    if !path.exists() {
+        return Err("Path does not exist!".to_string());
+    }
+
+    let mut res = read_file_to_stdout(&path);
+    
+    for l in res.lines() {
+        let mut capts = net_re.captures_iter(&l[..]);
+        let pm = capts.next();
+        match pm {
+            Some(p) => { 
+                let ni = NetItem {
+                    uid: p[4].parse::<u32>().unwrap(),
+                    local_address: p[1].to_string(),
+                    remote_address: p[2].to_string(),
+                    st: p[3].to_string(),
+                    timeout: p[5].parse::<u32>().unwrap(),
+                    inode: p[6].parse::<u32>().unwrap(),
+                    ref_cnt: p[7].parse::<u32>().unwrap(),
+                    protocol: "tcp".to_string()
+                };
+                
+                let f = &filters;
+                let b = f.check(&ni);
+                if b {
+                    net_items.add_row(ni);
+                    
+                }
+            }
+            _ => (),
+        }
+    }
+    
+
+    let upath = Path::new(&udp_path);
+    if !upath.exists() {
+        return Err("Path does not exist!".to_string());
+    }
+    let ures = read_file_to_stdout(&upath);
+    for l in ures.lines() {
+        let mut capts = net_re.captures_iter(&l[..]);
+        let pm = capts.next();
+        match pm {
+            Some(p) => { 
+                let ni = NetItem {
+                    uid: p[4].parse::<u32>().unwrap(),
+                    local_address: p[1].to_string(),
+                    remote_address: p[2].to_string(),
+                    st: p[3].to_string(),
+                    timeout: p[5].parse::<u32>().unwrap(),
+                    inode: p[6].parse::<u32>().unwrap(),
+                    ref_cnt: p[7].parse::<u32>().unwrap(),
+                    protocol: "udp".to_string()
+                };
+                
+                let f = &filters;
+                let b = f.check(&ni);
+                if b {
+                    net_items.add_row(ni);
+                }
+            }
+            _ => (),
+        }
+    }
+
+    Ok(export(net_items, cols))
+}
+
+
+
 pub fn query_dir(cols: &mut Vec<String>, filter_str: &String) -> Result<String, String> {
     let res = vector_selector(&filter_str[..]);
     let mut filters = match res {
@@ -459,7 +834,7 @@ pub fn query_dir(cols: &mut Vec<String>, filter_str: &String) -> Result<String, 
         },
     };
 
-    match filters.get_path() {
+    match filters.get_field("path".to_string()) {
         Some(file_path) => {
             let path = Path::new(&file_path);
             if !path.exists() {

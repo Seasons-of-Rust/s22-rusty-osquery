@@ -4,7 +4,7 @@ mod app;
 
 fn main() {
     if env::consts::OS != "linux" {
-        panic!("We don't support {} yet!", env::consts::OS);
+        panic!("[CRITICAL HIT] Oh Nos! We don't support {} yet!", env::consts::OS);
     }
     app::mainloop();
 }

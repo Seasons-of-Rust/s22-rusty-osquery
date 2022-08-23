@@ -50,6 +50,8 @@ pub fn print_help() {
 |**Table**|**Description**|
 |:-|:-|
 | procs | Processes running on the system |
+| proc_maps | Data mapped into process memory |
+| net | Network connections |
 | fs | Query the file system |
 | os_version | Query the operating system version |
 |-
@@ -91,6 +93,32 @@ pub fn print_fs_schema() {
 
     let mut skin = MadSkin::default();
     let mut text_template: String  = "|:-|:-|\n|**name*|The name of the file|\n|**dir**|The file type|\n|**uid**|The uid of the file owner|\n|**created**|The file creation time|\n|-".to_string();
+
+    skin.paragraph.align = Alignment::Left;
+    skin.table.align = Alignment::Left;
+
+    println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+}
+
+pub fn print_proc_map_schema() {
+    println!("");
+
+    let mut skin = MadSkin::default();
+    let mut text_template: String  = "|:-|:-|\n|**start_addr**|Start of mapping in process vm|\n|**end_addr**|End of mapping in process vm|\n|**permissions**|Permissions (rwx) for the section|\n|**size_maybe**|Size, maybe?|\n|**start_time**|Time at which the mapping occurred, I think |\n|**file_desc**|File Descriptor|\n|**file_name**|The name of the file mapped into memory if applicable|\n|-".to_string();
+
+    skin.paragraph.align = Alignment::Left;
+    skin.table.align = Alignment::Left;
+
+    println!("{}", skin.term_text(&text_template[..]));
+    println!("\n");
+}
+
+pub fn print_net_schema() {
+    println!("");
+
+    let mut skin = MadSkin::default();
+    let mut text_template: String  = "|:-|:-|\n|**uid**|uid of the owner of the network connection|\n|**local_address**|Our address|\n|**remote_address**|Their address|\n|**st**|Connection State|\n|**timeout**|Timeout|\n|**inode**|Inode|\n|**ref_cnt**|Reference Count|\n|**protocol**|Network Protocol (tcp or udp)|\n|-".to_string();
 
     skin.paragraph.align = Alignment::Left;
     skin.table.align = Alignment::Left;
